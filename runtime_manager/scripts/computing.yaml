@@ -311,8 +311,13 @@ subs :
           cmd  : roslaunch lidar_kf_contour_track lidar_kf_contour_track.launch
           param: lidar_kf_contour_track_param
           gui  :
-            dialog_width  : 650
-            dialog_height : 450
+            dialog_width  : 700
+            dialog_height : 500
+            vector_map_filter_distance:
+              depend : map_filter_type
+              depend_bool : 'lambda v : v == 2'
+              flags : [ nl ]
+              prop  : 1
 
     - name : trafficlight_recognizer
       desc : trafficlight_recognizer desc sample
@@ -328,7 +333,17 @@ subs :
           camera_id :
             border : 16
             flags : [ all ]
-
+      - name : feat_proj_kml
+        desc : same function as feat_proj but with utilizing the kml map format, op_common_params should be started 
+        cmd  : roslaunch trafficlight_recognizer feat_proj_kml.launch
+        param: feat_proj_kml
+        gui  :
+          flags : [ need_camera_info ]
+          sel_cam_dialog_only : [ camera_id ]
+          sel_cam_dialog_allow: [ camera_id ]
+          camera_id :
+            border : 16
+            flags : [ all ]
       - name : region_tlr
         desc : region_tlr desc sample
         cmd  : roslaunch trafficlight_recognizer traffic_light_recognition.launch
@@ -644,6 +659,10 @@ subs :
     - name : waypoint_follower
       desc : waypoint_follower desc sample
       subs :
+       - name : ff_waypoint_follower
+         desc : Feedforward PID waypoint follower
+         cmd  : roslaunch ff_waypoint_follower ffwaypointfollower_car.launch
+         param: ff_waypoint_follower
        - name : pure_pursuit
          desc : pure_pursuit desc sample
          cmd  : roslaunch pure_pursuit pure_pursuit.launch
@@ -1275,6 +1294,15 @@ params :
 
   - name  : lidar_kf_contour_track_param
     vars  :
+    - name    : tracker_input_topic
+      desc    : input_topic desc sample
+      label   : 'input topic'
+      kind    : topic
+      topic_type : autoware_msgs/DetectedObjectArray
+      v       : /detection/lidar_detector/objects
+      cmd_param :
+        dash        : ''
+        delim       : ':='
     - name : tracking_type
       desc : select the type of tracking
       label: Tracking Type
@@ -1306,15 +1334,6 @@ params :
       min  : 0.0
       max  : 100.0
       v    : 10
-      cmd_param:
-        dash     : ''
-        delim    : ':='
-    - name : vector_map_filter_distance
-      desc : Filtering distance from object to vector map center line if available
-      label: Vector Map Filter Distance
-      min  : 0.0
-      max  : 20.0
-      v    : 2.0
       cmd_param:
         dash     : ''
         delim    : ':='
@@ -1377,6 +1396,31 @@ params :
       min  : 1
       max  : 15
       v    : 5
+      cmd_param:
+        dash     : ''
+        delim    : ':='
+    - name : map_filter_type
+      desc : which map based objects filtering to use with the tracker 
+      label: Objects Filter Type
+      kind : radio_box
+      choices:
+      - No Filter
+      - Boundaries (Wayarea)
+      - Centerline Proximity
+      descs :
+      - Disable filtering, track all detected objects 
+      - Use the map defined boundaries or wayareas, all objects will be filtered if no boundaries or wayareas are defined in the map
+      - Use the map's lanes centerlines, the filter distance will control the object filtering
+      v   : 0
+      cmd_param:
+        dash     : ''
+        delim    : ':='
+    - name : vector_map_filter_distance
+      desc : Filtering distance from object to vector map center line if available
+      label: Centerline Filter Distance 
+      min  : 0.0
+      max  : 20.0
+      v    : 1.5
       cmd_param:
         dash     : ''
         delim    : ':='
@@ -2864,6 +2908,32 @@ params :
         dash         : ''
         delim        : ':='
         only_enable  : True
+  - name : feat_proj_kml
+    topic: /config/adjust_xy
+    msg  : AdjustXY
+    vars :
+    - name : x
+      desc : x desc sample
+      label: x
+      min  : -200
+      max  : 200
+      v    : 0
+    - name : y
+      desc : y desc sample
+      label: y
+      min  : -200
+      max  : 200
+      v    : 0
+    - name         : camera_id
+      desc         : camera_id desc sample
+      kind         : menu
+      label        : Camera ID
+      choices_type : str
+      v            : ''
+      cmd_param    :
+        dash         : ''
+        delim        : ':='
+        only_enable  : True
 
   - name : region_tlr
     topic: /config/superimpose
@@ -3155,7 +3225,7 @@ params :
         dash     : ''
         delim    : ':='
     - name : enableHMI
-      desc : Enable connection to Human Machine Interface (HMI)
+      desc : Enable connection to Human Machine Interface
       label: Enable HMI
       kind : checkbox
       v    : False
@@ -3221,30 +3291,6 @@ params :
 
   - name  : op_global_planner
     vars  :
-    - name : enableLaneChange
-      desc : global plan extended by lane changes
-      label: Lane Changing
-      kind : checkbox
-      v    : False
-      cmd_param:
-        dash     : ''
-        delim    : ':='
-    - name : enableReplan
-      desc : infinite replanning to multiple goals including the start position
-      label: Replanning
-      kind : checkbox
-      v    : False
-      cmd_param:
-        dash     : ''
-        delim    : ':='
-    - name : enableSmoothing
-      desc : smooth and fix global path
-      label: Smoothing
-      kind : checkbox
-      v    : False
-      cmd_param:
-        dash     : ''
-        delim    : ':='
     - name : enableRvizInput
       desc : Enable Destination selection by Rviz or from Log file
       label: Rviz Goals
@@ -3253,7 +3299,30 @@ params :
       cmd_param:
         dash   : ''
         delim  : ':='
-
+    - name : enableLaneChange
+      desc : global plan extended by lane changes
+      label: Enable Lane Changing
+      kind : checkbox
+      v    : False
+      cmd_param:
+        dash     : ''
+        delim    : ':='
+    - name : enableReplan
+      desc : infinite replanning to multiple goals including the start position
+      label: Enable Replanning
+      kind : checkbox
+      v    : False
+      cmd_param:
+        dash     : ''
+        delim    : ':='
+    - name : enableSmoothing
+      desc : smooth and fix global path
+      label: Enable Smoothing
+      kind : checkbox
+      v    : False
+      cmd_param:
+        dash     : ''
+        delim    : ':='
     - name : pathDensity
       desc : distance between each two waypoints
       label: Path Density
@@ -3279,6 +3348,23 @@ params :
       cmd_param:
         dash     : ''
         delim    : ':='
+    - name : experimentName
+      desc : experiment name - should be one for all OpenPlanner nodes - leave empty to use default log folder
+      label: Experiment Name
+      kind : str
+      v    : ''
+      cmd_param:
+        dash     : ''
+        delim    : ':='
+    - name : enableHMI
+      desc : Enable Connection to op_hmi_bridge and use receiving commands from other HMI high level intervention -  to use destinations csv modify the op_global_planner launch file.
+      label: Enable HMI
+      kind : checkbox
+      v    : False
+      cmd_param:
+        dash   : ''
+        delim  : ':='
+
   - name  : dp_planner
     vars  :
     - name : enabTrajectoryVelocities
@@ -3554,15 +3640,13 @@ params :
       label: Control Signal
       kind : radio_box
       choices:
-      - Simulation
-      - Vehicle
-      - Autoware
+      - Simulation Rviz
+      - Autoware (Default)
       - Robot
       descs :
       - Simulation Mode
-      - ZMP Vehicle
       - Autoware Other Nodes
-      - Smaller Robot
+      - Small Robot
       v   : 0
       cmd_param:
         dash     : ''
@@ -3571,7 +3655,7 @@ params :
     vars  :
 
     - name : horizonDistance
-      desc : Horizon distance
+      desc : Horizon distance in meters
       label: Horizon
       min : 1.0
       max : 250.0
@@ -3580,7 +3664,7 @@ params :
         dash     : ''
         delim    : ':='
     - name : maxLocalPlanDistance
-      desc : max length of the local plan
+      desc : max length of the local plan in meters
       label: Plan Ditance
       min  : 0.5
       max  : 150.0
@@ -3589,7 +3673,7 @@ params :
         dash     : ''
         delim    : ':='
     - name : pathDensity
-      desc : distance between each two waypoints
+      desc : distance between each two waypoints in meters
       label: Path Density
       min  : 0.01
       max  : 5.0
@@ -3598,7 +3682,7 @@ params :
         dash     : ''
         delim    : ':='
     - name : rollOutDensity
-      desc : Roll outs density
+      desc : Roll outs density in meters
       label: Horizontal Density
       min  : 0.01
       max  : 5.0
@@ -3619,13 +3703,13 @@ params :
       desc : maximum allowed velocity in meter/second
       label: Max Velocity
       min  : -1.0
-      max  : 20.0
+      max  : 40.0
       v    : 3.0
       cmd_param:
         dash     : ''
         delim    : ':='
     - name : maxAcceleration
-      desc : Maximum acceleration allowed
+      desc : Maximum acceleration allowed meter/second2
       label: Acceleration
       min  : 0.01
       max  : 25.0
@@ -3634,7 +3718,7 @@ params :
         dash     : ''
         delim    : ':='
     - name : maxDeceleration
-      desc : Maximum deceleration
+      desc : Maximum deceleration allowed -meter/second2
       label: Deceleration
       min  : -25.0
       max  : -0.01

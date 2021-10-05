@@ -39,6 +39,13 @@ buttons :
       stat_topic : [ vmap ]
       panel : self.panel_lanelet_map
 
+  assure_kml_map :
+    run   : roslaunch map_file assure_kml_map_loader.launch
+    param : assure_map_loader
+    gui   :
+      stat_topic : [ vmap ]
+      panel : self.panel_assure_kml_map
+
   tf :
     run    : roslaunch
     param  : tf
@@ -101,6 +108,15 @@ params :
       v         : ''
       cmd_param :
         delim     : 'file_name:='
+        must      : True
+
+  - name  : assure_map_loader
+    vars  :
+    - name      : kml_map_file_name
+      kind      : path
+      v         : ''
+      cmd_param :
+        delim     : 'kml_map_file_name:='
         must      : True
 
   - name  : tf
