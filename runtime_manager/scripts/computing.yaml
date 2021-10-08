@@ -659,10 +659,6 @@ subs :
     - name : waypoint_follower
       desc : waypoint_follower desc sample
       subs :
-       - name : ff_waypoint_follower
-         desc : Feedforward PID waypoint follower
-         cmd  : roslaunch ff_waypoint_follower ffwaypointfollower_car.launch
-         param: ff_waypoint_follower
        - name : pure_pursuit
          desc : pure_pursuit desc sample
          cmd  : roslaunch pure_pursuit pure_pursuit.launch
