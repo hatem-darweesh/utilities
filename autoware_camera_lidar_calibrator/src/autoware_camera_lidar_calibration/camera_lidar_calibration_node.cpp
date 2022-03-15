@@ -33,7 +33,7 @@
 #if (CV_MAJOR_VERSION == 3)
 	#include <opencv2/imgcodecs.hpp>
 #else
-	#include <opencv2/contrib/contrib.hpp>
+	//#include <opencv2/contrib/contrib.hpp>
 #endif
 
 #define __APP_NAME__ "autoware_camera_lidar_calibration_node"
@@ -151,7 +151,7 @@ class ROSCameraLidarApp
 			             rotation_vector,
 			             translation_vector,
 			             true,
-			             CV_EPNP
+						 cv::SolvePnPMethod::SOLVEPNP_EPNP
 			);
 
 			cv::Mat rotation_matrix;
