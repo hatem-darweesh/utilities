@@ -3872,12 +3872,21 @@ params :
       cmd_param:
         dash     : ''
         delim    : ':='
-    - name : prediction_distance
-      desc : Max trajectory prediction distance
-      label: Prediction distance
+    - name : min_prediction_distance
+      desc : Min trajectory prediction distance in meters
+      label: Minimum Prediction distance
       min  : 1.0
       max  : 75.0
-      v    : 25.0
+      v    : 10.0
+      cmd_param:
+        dash     : ''
+        delim    : ':='      
+    - name : min_prediction_time
+      desc : Min time for prediction in second
+      label: Minimum Prediction time
+      min  : 0.1
+      max  : 30.0
+      v    : 3.0      
       cmd_param:
         dash     : ''
         delim    : ':='
